@@ -41,6 +41,11 @@ function chooseGreedy(hand, rng, ctx) {
   // Hurt? Bank an Ember.
   const embers = byKind(hand, 'ember');
   if (embers.length > 0 && ember <= diff.emberPlayAt) return embers[0];
+  // Desperate? Throw the best card at the table instead of saving it.
+  if (ember <= 10) {
+    const best = highestCard(hand.filter((c) => c.kind !== 'ember'));
+    if (best) return best;
+  }
   // Behind on Ember and the night is late? Light a Lantern.
   const lanterns = byKind(hand, 'lantern');
   if (lanterns.length > 0 && night >= diff.lanternSaveUntil && ember < 20) return lanterns[0];
@@ -57,6 +62,12 @@ function chooseGreedy(hand, rng, ctx) {
     const sorted = [...hand].filter((c) => c.kind !== 'ember').sort((a, b) => b.value - a.value);
     return sorted[Math.min(1, sorted.length - 1)] || sorted[0];
   }
+  // You keep coming in high — meet strength with strength.
+  const recent = (ctx.seenCards || []).slice(-3);
+  if (recent.length >= 2 && recent.every((c) => c.value >= 8)) {
+    const strong = hand.filter((c) => c.kind !== 'ember').sort((a, b) => b.value - a.value);
+    if (strong.length > 0) return strong[Math.floor(rng() * Math.min(2, strong.length))];
+  }
   // Otherwise play a low card and save the fire.
   const low = hand.filter((c) => c.kind !== 'ember' && c.kind !== 'lantern')
     .sort((a, b) => a.value - b.value);
@@ -68,6 +79,11 @@ function chooseCounting(hand, rng, ctx) {
   const diff = DIFFICULTIES.bonfire;
   const embers = byKind(hand, 'ember');
   if (embers.length > 0 && ember <= diff.emberPlayAt) return embers[0];
+  // Desperate? Throw the best card at the table instead of saving it.
+  if (ember <= 10) {
+    const best = highestCard(hand.filter((c) => c.kind !== 'ember'));
+    if (best) return best;
+  }
   const lanterns = byKind(hand, 'lantern');
   // Hold Lanterns until the late nights, then spend them to close the duel.
   if (lanterns.length > 0 && night >= diff.lanternSaveUntil) {
@@ -95,6 +111,12 @@ function chooseCounting(hand, rng, ctx) {
       .filter((c) => c.value >= yourBestSeen)
       .sort((a, b) => a.value - b.value)[0];
     if (cheap && rng() < 0.8) return cheap;
+  }
+  // You keep coming in high — meet strength with strength.
+  const recent = (seenCards || []).slice(-3);
+  if (recent.length >= 2 && recent.every((c) => c.value >= 8)) {
+    const strong = hand.filter((c) => c.kind !== 'ember').sort((a, b) => b.value - a.value);
+    if (strong.length > 0) return strong[0];
   }
   const low = hand.filter((c) => c.kind !== 'ember' && c.kind !== 'lantern')
     .sort((a, b) => a.value - b.value);
